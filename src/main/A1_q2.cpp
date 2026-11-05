@@ -18,7 +18,42 @@ namespace aim::q2 {
 struct LabelEdit { std::string from; std::string to; };
 
 // BEGIN IMPLEMENTATION
-std::string edit_labels(std::string labels, const std::vector<LabelEdit>& edits) { throw std::runtime_error("TODO"); }
+// aim-cpp-cw-known
+std::string edit_labels(std::string labels,
+                        const std::vector<LabelEdit>& edits) {
+    for (const auto& edit : edits) {
+        if (edit.from.empty()) {
+            if (!edit.to.empty()) {
+                if (!labels.empty()) labels += ',';
+                labels += edit.to;
+            }
+            continue;
+        }
+
+        // Find the first complete label equal to edit.from; "cam" must not
+        // match inside "cam2", so both sides need a string end or a comma.
+        std::size_t pos = labels.find(edit.from);
+        while (pos != std::string::npos) {
+            const std::size_t end = pos + edit.from.size();
+            const bool starts_label = pos == 0 || labels[pos - 1] == ',';
+            const bool ends_label = end == labels.size() || labels[end] == ',';
+            if (starts_label && ends_label) break;
+            pos = labels.find(edit.from, pos + 1);
+        }
+        if (pos == std::string::npos) continue;
+
+        if (!edit.to.empty()) {
+            labels.replace(pos, edit.from.size(), edit.to);
+        } else if (pos > 0) {
+            labels.erase(pos - 1, edit.from.size() + 1);  // ",label"
+        } else if (pos + edit.from.size() < labels.size()) {
+            labels.erase(pos, edit.from.size() + 1);      // "label,"
+        } else {
+            labels.clear();                              // the only label
+        }
+    }
+    return labels;
+}
 // END IMPLEMENTATION
 }
 
